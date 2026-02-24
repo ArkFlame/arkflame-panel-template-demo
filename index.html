@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Visualizador de Plugins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Inter', system-ui, sans-serif;
+      --bg: #0a0f1a;
+      --panel: #111827;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --accent-darkred: #b91c1c;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+      --glow: 0 8px 24px rgba(59, 130, 246, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top, rgba(59, 130, 246, 0.15), transparent 40%),
+                  radial-gradient(circle at bottom, rgba(239, 68, 68, 0.2), transparent 35%), var(--bg);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      width: 100%;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+    }
+
+    .brand {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      color: #fff;
+      font-weight: 500;
+      transition: border 0.2s ease, transform 0.2s ease;
+    }
+
+    .nav-button:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .nav-button.active {
+      background: linear-gradient(120deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    }
+
+    .nav-icon {
+      font-size: 1.2rem;
+    }
+
+    .plugin-detail {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .three-columns {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      box-shadow: var(--glow);
+    }
+
+    .panel h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .metric {
+      font-size: 2rem;
+      font-weight: 600;
+    }
+
+    .chart-bars {
+      display: grid;
+      grid-auto-flow: column;
+      align-items: end;
+      gap: 6px;
+      height: 110px;
+    }
+
+    .chart-bars div {
+      width: 12px;
+      border-radius: 6px;
+      background: conic-gradient(from 180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+    }
+
+    .glow-panel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glow-panel::after {
+      content: '';
+      position: absolute;
+      inset: -50% -30%;
+      background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .glow-panel:hover::after {
+      opacity: 1;
+    }
+
+    .logs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    .log-entry {
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      font-size: 0.9rem;
+      border: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .api-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border-radius: 20px;
+      background: #111827;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    .api-controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    .api-input {
+      flex: 1;
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.02);
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    .api-btn {
+      border-radius: 12px;
+      padding: 12px 16px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: var(--accent-purple);
+      color: #fff;
+      transition: transform 0.2s ease;
+    }
+
+    .api-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .api-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .api-key {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.02);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .api-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .small-btn {
+      border-radius: 10px;
+      padding: 6px 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .copy-btn {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .delete-btn {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .plugin-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .plugin-title span {
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+      background: rgba(16, 185, 129, 0.15);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .plugin-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .chart-line {
+      width: 100%;
+      height: 120px;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    }
+
+    .chart-line::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpolyline points="0,70 20,40 40,40 60,20 80,50 100,30" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E') center/contain no-repeat;
+      opacity: 0.3;
+    }
+
+    .chart-line svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .api-section-title {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .plugin-description {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .glow-blue {
+      box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+    }
+
+    .glow-red {
+      box-shadow: 0 10px 35px rgba(239, 68, 68, 0.35);
+    }
+
+    .glow-green {
+      box-shadow: 0 10px 35px rgba(16, 185, 129, 0.35);
+    }
+
+    .bar-blue {
+      background: linear-gradient(180deg, rgba(59,130,246,0.85), rgba(59,130,246,0.4));
+    }
+
+    .bar-red {
+      background: linear-gradient(180deg, rgba(248,113,113,0.85), rgba(248,113,113,0.4));
+    }
+
+    .bar-darkred {
+      background: linear-gradient(180deg, rgba(191, 45, 45,0.85), rgba(191, 45, 45,0.4));
+    }
+
+    .bar-green {
+      background: linear-gradient(180deg, rgba(16, 185, 129,0.85), rgba(16, 185, 129,0.4));
+    }
+
+    .icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      font-size: 1.3rem;
+    }
+
+    .scrollable {
+      overflow: auto;
+    }
+
+    @media (max-width: 900px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 35;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">ARKFLAME PANEL (PREVIEW)</div>
+      <div class="api-panel">
+        <div class="api-section-title">API Key Generator</div>
+        <div class="api-controls">
+          <input class="api-input" id="apiKeyInput" placeholder="Describe la integración" />
+          <button class="api-btn" id="generateKeyBtn">Generar</button>
+        </div>
+        <div class="api-list" id="apiKeyList"></div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-button active" data-plugin="exploitfixer">
+          <span class="nav-icon" style="color: #3b82f6;">💠</span>
+          ExploitFixer
+        </button>
+        <button class="nav-button" data-plugin="flamecord">
+          <span class="nav-icon" style="color: #ef4444;">🔥</span>
+          FlameCord
+        </button>
+        <button class="nav-button" data-plugin="veloflame">
+          <span class="nav-icon" style="color: #ef4444;">🌀</span>
+          VeloFlame
+        </button>
+        <button class="nav-button" data-plugin="redstonelimiter">
+          <span class="nav-icon" style="color: #dc2626;">🟥</span>
+          RedstoneLimiter
+        </button>
+        <button class="nav-button" data-plugin="entitylimiter">
+          <span class="nav-icon" style="color: #22c55e;">🍃</span>
+          EntityLimiter
+        </button>
+      </div>
+    </aside>
+    <main class="plugin-detail">
+      <div class="plugin-content" id="pluginContent"></div>
+    </main>
+  </div>
+
+  <template id="plugin-template">
+    <div>
+      <div class="plugin-title">
+        <div class="icon-badge" id="plugin-icon"></div>
+        <div>
+          <div class="plugin-name" id="plugin-name"></div>
+          <div class="plugin-description" id="plugin-desc"></div>
+        </div>
+        <span class="status-badge" id="plugin-status"></span>
+      </div>
+      <div class="panel-grid three-columns" id="metrics-grid"></div>
+      <div class="panel glow-panel" id="primary-chart"></div>
+      <div class="panel-grid three-columns" id="secondary-grid"></div>
+      <div class="panel glow-panel" id="logs-panel"></div>
+    </div>
+  </template>
+
+  <div class="hidden" style="display:none" id="template-holder"></div>
+
+  <script>
+    const plugins = {
+      exploitfixer: {
+        name: 'ExploitFixer',
+        desc: 'Monitoreo en tiempo real de paquetes, exploits y acciones automáticas.',
+        color: '#3b82f6',
+        icon: '💠',
+        accentClass: 'bar-blue',
+        chartTitle: 'Flujo de paquetes',
+        metrics: [
+          { label: 'Jugadores sancionados', value: '1,256' },
+          { label: 'Exploit bloqueados', value: '8,340' },
+          { label: 'Exploit más común', value: 'PacketKick' }
+        ],
+        secondary: [
+          { label: 'Jugadores detectados', value: '422' },
+          { label: 'Logs recientes', value: '148' },
+          { label: 'Tiempo de respuesta', value: '23 ms' }
+        ],
+        logs: [
+          '[11:24] TCP anomaly blocked for 34.123.54.2',
+          '[11:24] Exploit "PacketFlood" mitigated',
+          '[11:23] Auto-kick triggered on player "NetHer0"'
+        ]
+      },
+      flamecord: {
+        name: 'FlameCord',
+        desc: 'Protección de entrada y bloqueo de bots en cada proxy y conexión.',
+        color: '#ef4444',
+        icon: '🔥',
+        accentClass: 'bar-red',
+        chartTitle: 'Bots bloqueados / Entrantes',
+        metrics: [
+          { label: 'Bots bloqueados', value: '564' },
+          { label: 'Flujo jugadores', value: '3,142' },
+          { label: 'Latencia media', value: '32 ms' }
+        ],
+        secondary: [
+          { label: 'Conexiones totales', value: '97,124' },
+          { label: 'Reintentos detectados', value: '212' },
+          { label: 'Status', value: 'Healthy' }
+        ],
+        logs: [
+          '[11:24] Bot IP 198.51.100.77 rejected',
+          '[11:23] Entropy filter passed for 34 players',
+          '[11:22] Queue stabilizada en 80 jugadores'
+        ]
+      },
+      veloflame: {
+        name: 'VeloFlame',
+        desc: 'Capa extra de defensa y aceleración para flujos turbulentos.',
+        color: '#dc2626',
+        icon: '🌀',
+        accentClass: 'bar-darkred',
+        chartTitle: 'Eventos bloqueados',
+        metrics: [
+          { label: 'Ataques neutralizados', value: '2,110' },
+          { label: 'Gateways activas', value: '18' },
+          { label: 'Media detección', value: '18 ms' }
+        ],
+        secondary: [
+          { label: 'Jugadores en espera', value: '98' },
+          { label: 'Flujos analizados', value: '12,040' },
+          { label: 'Promedio CPU', value: '64%' }
+        ],
+        logs: [
+          '[11:24] DDoS mitigar N3000',
+          '[11:23] Reglas VFlow actualizadas',
+          '[11:22] Nodo 3 reasignado'
+        ]
+      },
+      redstonelimiter: {
+        name: 'RedstoneLimiter',
+        desc: 'Bloquea circuitos y señales maliciosas en redstone con control fino.',
+        color: '#dc2626',
+        icon: '🟥',
+        accentClass: 'bar-red',
+        chartTitle: 'Pulsos filtrados',
+        metrics: [
+          { label: 'Circuitos limitados', value: '182' },
+          { label: 'Pulsos máximos', value: '12K/h' },
+          { label: 'Bloqueos hoy', value: '39' }
+        ],
+        secondary: [
+          { label: 'Eventos por segundo', value: '18 eps' },
+          { label: 'Áreas afectadas', value: '27' },
+          { label: 'Promedio latencia', value: '11 ms' }
+        ],
+        logs: [
+          '[11:24] Overload planeado en zona Nether',
+          '[11:23] Se filtró interruptor de redstone',
+          '[11:22] Threshold ajustado a 820'
+        ]
+      },
+      entitylimiter: {
+        name: 'EntityLimiter',
+        desc: 'Protege la simulación limitando entidades maliciosas o no permitidas.',
+        color: '#22c55e',
+        icon: '🍃',
+        accentClass: 'bar-green',
+        chartTitle: 'Entidades controladas',
+        metrics: [
+          { label: 'Entidades eliminadas', value: '1,004' },
+          { label: 'Chunks monitoreados', value: '618' },
+          { label: 'Temperatura promedio', value: '46%' }
+        ],
+        secondary: [
+          { label: 'Lag detectado', value: '12 ms' },
+          { label: 'Clusters activos', value: '31' },
+          { label: 'Modo seguro', value: 'Activado' }
+        ],
+        logs: [
+          '[11:24] Activada barrera para mobs nocturnos',
+          '[11:23] Ajuste en cluster “North” completado',
+          '[11:22] Generador de entidades limitado'
+        ]
+      }
+    };
+
+    const pluginContent = document.getElementById('pluginContent');
+    const template = document.getElementById('plugin-template');
+    const navButtons = document.querySelectorAll('.nav-button');
+    const apiKeyListElement = document.getElementById('apiKeyList');
+    const generateBtn = document.getElementById('generateKeyBtn');
+    const apiInput = document.getElementById('apiKeyInput');
+
+    let trafficInterval;
+
+    function renderPlugin(name) {
+      const config = plugins[name];
+      const clone = template.content.cloneNode(true);
+      const container = clone.querySelector('div');
+      const icon = clone.getElementById('plugin-icon');
+      const title = clone.getElementById('plugin-name');
+      const desc = clone.getElementById('plugin-desc');
+      const status = clone.getElementById('plugin-status');
+      const metricsGrid = clone.getElementById('metrics-grid');
+      const secondaryGrid = clone.getElementById('secondary-grid');
+      const primaryChart = clone.getElementById('primary-chart');
+      const logsPanel = clone.getElementById('logs-panel');
+
+      icon.textContent = config.icon;
+      title.textContent = config.name;
+      desc.textContent = config.desc;
+      status.textContent = 'Online';
+      container.querySelector('.status-badge').style.borderColor = config.color;
+
+      config.metrics.forEach(metric => {
+        const metricCard = document.createElement('div');
+        metricCard.classList.add('panel', 'glow-panel');
+        metricCard.style.borderColor = 'rgba(255,255,255,0.08)';
+        metricCard.innerHTML = `
+          <p class="plugin-description">${metric.label}</p>
+          <p class="metric">${metric.value}</p>
+        `;
+        metricsGrid.appendChild(metricCard);
+      });
+
+      config.secondary.forEach(metric => {
+        const metricCard = document.createElement('div');
+        metricCard.classList.add('panel');
+        metricCard.innerHTML = `
+          <p class="plugin-description">${metric.label}</p>
+          <p class="metric">${metric.value}</p>
+        `;
+        secondaryGrid.appendChild(metricCard);
+      });
+
+      primaryChart.innerHTML = '';
+      const chartTitle = document.createElement('p');
+      chartTitle.textContent = config.chartTitle;
+      chartTitle.style.marginBottom = '12px';
+      chartTitle.style.color = '#94a3b8';
+      primaryChart.appendChild(chartTitle);
+      const bars = document.createElement('div');
+      bars.classList.add('chart-bars');
+      for (let i = 0; i < 12; i++) {
+        const bar = document.createElement('div');
+        bar.style.height = `${50 + Math.random() * 50}px`;
+        bar.classList.add(config.accentClass);
+        bars.appendChild(bar);
+      }
+      const line = document.createElement('div');
+      line.classList.add('chart-line');
+      line.innerHTML = `
+        <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+          <polyline points="${generateLinePoints()}" stroke="${config.color}" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+      `;
+      primaryChart.appendChild(bars);
+      primaryChart.appendChild(line);
+
+      logsPanel.innerHTML = '';
+      const logTitle = document.createElement('p');
+      logTitle.textContent = 'Logs recientes';
+      logTitle.style.marginBottom = '12px';
+      logTitle.style.color = '#94a3b8';
+      logsPanel.appendChild(logTitle);
+      const logsContainer = document.createElement('div');
+      logsContainer.classList.add('logs');
+      config.logs.forEach(log => {
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        entry.textContent = log;
+        logsContainer.appendChild(entry);
+      });
+      logsPanel.appendChild(logsContainer);
+      pluginContent.innerHTML = '';
+      pluginContent.appendChild(container);
+    }
+
+    function generateLinePoints() {
+      let points = '0,80';
+      for (let i = 1; i <= 8; i++) {
+        const x = i * 25;
+        const y = 20 + Math.random() * 60;
+        points += ` ${x},${y}`;
+      }
+      points += ' 200,40';
+      return points;
+    }
+
+    function updateTraffic() {
+      const currentPlugin = document.querySelector('.nav-button.active').dataset.plugin;
+      const config = plugins[currentPlugin];
+      const chart = document.querySelector('#primary-chart svg polyline');
+      if (chart) {
+        chart.setAttribute('points', generateLinePoints());
+        chart.setAttribute('stroke', config.color);
+      }
+    }
+
+    function setActive(plugin) {
+      navButtons.forEach(btn => btn.classList.remove('active'));
+      const targetButton = Array.from(navButtons).find(btn => btn.dataset.plugin === plugin);
+      if (!targetButton) return;
+      targetButton.classList.add('active');
+      renderPlugin(plugin);
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setActive(btn.dataset.plugin);
+      });
+    });
+
+    function randomKey() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 28; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    function renderApiKeys(keys) {
+      apiKeyListElement.innerHTML = '';
+      keys.forEach(key => {
+        const keyRow = document.createElement('div');
+        keyRow.classList.add('api-key');
+        keyRow.innerHTML = `
+          <span>${key.label}</span>
+          <div class="api-actions">
+            <button class="small-btn copy-btn" data-copy="${key.key}">Copiar</button>
+            <button class="small-btn delete-btn" data-delete="${key.key}">Eliminar</button>
+          </div>
+        `;
+        apiKeyListElement.appendChild(keyRow);
+      });
+    }
+
+    let apiKeys = [
+      { label: 'Servidor principal • ExploitFixer', key: randomKey() },
+      { label: 'Proxy FlameCord • BotWatcher', key: randomKey() }
+    ];
+    renderApiKeys(apiKeys);
+
+    generateBtn.addEventListener('click', () => {
+      const label = apiInput.value.trim() || 'Integración rápida';
+      const newKey = { label, key: randomKey() };
+      apiKeys = [newKey, ...apiKeys];
+      if (apiKeys.length > 6) {
+        apiKeys.pop();
+      }
+      renderApiKeys(apiKeys);
+      apiInput.value = '';
+    });
+
+    apiKeyListElement.addEventListener('click', event => {
+      if (event.target.matches('[data-copy]')) {
+        const value = event.target.dataset.copy;
+        navigator.clipboard.writeText(value);
+        event.target.textContent = 'Copiado';
+        setTimeout(() => event.target.textContent = 'Copiar', 1200);
+      }
+      if (event.target.matches('[data-delete]')) {
+        const value = event.target.dataset.delete;
+        apiKeys = apiKeys.filter(entry => entry.key !== value);
+        renderApiKeys(apiKeys);
+      }
+    });
+
+    setActive('exploitfixer');
+    trafficInterval = setInterval(updateTraffic, 2500);
+  </script>
+</body>
+</html>
+
